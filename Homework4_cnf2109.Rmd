@@ -1,0 +1,131 @@
+---
+title: "Homework 4"
+author: "Claire Friou (cnf2109)"
+date: "4/24/2019"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. Reject-Accept Method
+
+Let random variable X denote the temperature at which a certain chemical reaction takes place.
+
+Perform the following tasks:
+1. Determine the maximum of f(x). Find an envelope function e(x) by using a uniform distribution for g(x) and setting e(x) = maxx{f(x)}.
+```{r}
+f<-function(x){
+  return(ifelse((x < -1 | x > 2),0,(1/9)*(4-x^2)))
+}
+xmax<-0
+f.max<-((1/9)*(4-xmax^2))
+
+e<-function(x){
+  return(ifelse((x < -1 | x > 2),Inf,f.max))
+}
+
+```
+2. Using the Accept-Reject Algorithm, write a program that simulates 1000 draws from the probability density function f(x).
+```{r}
+n.samps<-1000
+counter<-0
+samps<-numeric(n.samps)
+while(counter<n.samps){
+  y<-runif(1)
+  u<-runif(1) #u for uniform distribution
+  if(u<f(y)/e(y)){
+    counter<-counter+1
+    samps[counter]<-y
+  }
+}
+```
+3. Plot a histogram of your simulated data with the density function f overlayed in the graph. Label your plot appropriately.
+```{r}
+x<-seq(0,1,length=100)
+hist(samps,prob=T,ylab="f(x)",xlab="x",main="Histogram of Draws from Unif(0,1)")
+lines(x,dunif(x,0,1),lty=2)
+```
+
+2. Regression and Empirical Size
+
+2.1 Regression
+We work with the grocery retailer dataset from Canvas. The description follows:
+A large national grocery retailer tracks productivity and costs of its facilities closely. Consider a data set obtained from a single distribution center for a one-year period. Each data point for each variable represents one week of activity. The variables included are num- ber of cases shipped in thousands (X1), the indirect costs of labor as a percentage of total costs (X2), a qualitative predictor called holiday that is coded 1 if the week has a holiday and 0 otherwise (X3), and total labor hours (Y).
+
+Perform the following tasks:
+4. Read in the grocery retailer dataset. Name the dataset grocery.
+```{r}
+setwd("~/Desktop/Applied Stats - R/Homework 4")
+grocery<-read.table("grocery.txt",header=TRUE,as.is=TRUE)
+```
+5. Use the least squares equation to estimate regression model. To estimate the model, use the linear model function in R, i.e., use lm().
+```{r}
+fit<-lm(grocery$Y~grocery$X1+grocery$X2+grocery$X3,data=grocery)
+fit
+```
+6. Use R to estimate o2, i.e., compute MSE = 1 􏰁n (Yi −Yˆi)2. To perform this task,
+use the residuals function.
+```{r}
+residuals.lm(fit)
+```
+
+2.2 Test for Slope
+
+The least squares estimates, organized standard errors, t-statistics, and p-values for all coefficients Bo,B1,B2,B3 are nicely organized in the standard linear regression output table displayed in Table 1. To get this output in R, use the summary function on your model.
+```{r}
+summary(fit)
+```
+
+Test the manager's claim in (3) using R functions lm() and summary()
+```{r}
+summary(fit)$coefficients[2,4]
+```
+B1 is not equal to zero thus we accept the alternative hypothesis.
+
+2.3 Sampling Distribution
+The goal of this section is to simulate the sampling distribution of the t-statistic.
+
+5. Write a loop that simulates the sampling distribution of the t-statistic under null hypothesis (3) with the multiple linear regression model (2).
+```{r}
+t.stat<-c()
+
+for(i in 1:10000){
+  Y.model<-lm(grocery$Y~I(15*grocery$X2+620*grocery$X3+4200),data=grocery)
+  t.stat<-c(t.stat,summary(Y.model)[[4]])
+  i<-i+1
+}
+head(t.stat,6)
+```
+
+7. Plot a histogram of the simulated sampling distribution. Overlay the correct t-density of this histogram. Plot the density in green and set breaks=40 in the histogram. Make sure to label the plot appropriately.
+```{r}
+library(ggplot2)
+qplot(t.stat,binwidth=40)+geom_histogram()+stat_function(fun=dnorm, color="green")
+
+```
+
+8. Recall the signficance level of a testing procedure. 
+```{r}
+size<-function(level=0.10){
+  p<-rep(0,length(t.stat))
+  for(i in 1:length(t.stat)){
+    sig<-t.test(t.stat)
+    p[i]<-sig$p.value
+    size.list<- mean(p<=level)
+  }
+  return(list(empirical.size=size.list))
+}
+size(level=0.05)
+size(level=0.01)
+size(level=0.10)
+```
+
+
+
+
+
